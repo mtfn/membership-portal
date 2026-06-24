@@ -1,5 +1,5 @@
 import {
-  ValidatorConstraintInterface, registerDecorator, ValidationOptions, ValidatorConstraint,
+  ValidatorConstraintInterface, registerDecorator, ValidationOptions, ValidatorConstraint, isEmail,
 } from 'class-validator';
 import { PasswordChange, FeedbackType, FeedbackStatus, OrderStatus, SocialMediaType } from '../../types';
 
@@ -63,6 +63,25 @@ class HandleValidator implements ValidatorConstraintInterface {
 
 export function IsValidHandle(validationOptions?: ValidationOptions) {
   return templatedValidationDecorator(HandleValidator, validationOptions);
+}
+
+@ValidatorConstraint()
+class EmailOrHandleValidator implements ValidatorConstraintInterface {
+  // Matches a full string containing only lowercase letters, numbers, and dashes (a handle)
+  regex = /^[a-z0-9-]+$/i;
+
+  validate(identifier: string): boolean {
+    if (typeof identifier !== 'string') return false;
+    return isEmail(identifier) || this.regex.test(identifier);
+  }
+
+  defaultMessage(): string {
+    return 'You must provide a valid email or handle';
+  }
+}
+
+export function IsValidEmailOrHandle(validationOptions?: ValidationOptions) {
+  return templatedValidationDecorator(EmailOrHandleValidator, validationOptions);
 }
 
 @ValidatorConstraint()

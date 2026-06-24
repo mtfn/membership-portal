@@ -36,7 +36,7 @@ export default class UserAuthService {
         if (userHandleTaken) throw new BadRequestError('This handle is already in use.');
       }
       const userHandle = registration.handle
-         ?? UserAccountService.generateDefaultHandle(registration.firstName, registration.lastName);
+        ?? UserAccountService.generateDefaultHandle(registration.firstName, registration.lastName);
 
       const user = await userRepository.upsertUser(userRepository.create({
         ...registration,
@@ -109,12 +109,14 @@ export default class UserAuthService {
     return user;
   }
 
-  public async checkCredentials(email: string, pass: string): Promise<UserModel> {
+  public async checkCredentials(identifier: string, pass: string): Promise<UserModel> {
     const authenticatedUser = await this.transactions.readWrite(async (txn) => {
-      const user = await Repositories
-        .user(txn)
-        .findByEmail(email.toLowerCase());
-      if (!user) throw new NotFoundError('There is no account associated with that email');
+      const userRepository = Repositories.user(txn);
+      const normalizedIdentifier = identifier.toLowerCase();
+      const user = normalizedIdentifier.includes('@')
+        ? await userRepository.findByEmail(normalizedIdentifier)
+        : await userRepository.findByHandle(normalizedIdentifier);
+      if (!user) throw new NotFoundError('There is no account associated with that email or handle');
       const passwordMatched = await user.verifyPass(pass);
       if (!passwordMatched) throw new ForbiddenError('Incorrect password');
       await Repositories.activity(txn).logActivity({
@@ -189,8 +191,8 @@ export default class UserAuthService {
   private static parseAuthHeader(authHeader: string): string {
     const splitHeader = authHeader.split(' ');
     const invalidAuthFormat = splitHeader.length !== 2
-            || splitHeader[0] !== 'Bearer'
-            || splitHeader[1].length === 0;
+      || splitHeader[0] !== 'Bearer'
+      || splitHeader[1].length === 0;
     if (invalidAuthFormat) {
       throw new ForbiddenError();
     }

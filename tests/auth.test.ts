@@ -250,6 +250,28 @@ describe('account login', () => {
     expect(decodedToken.uuid).toEqual(member.uuid);
   });
 
+  test('user can get a working auth token with their handle', async () => {
+    const conn = await DatabaseConnection.get();
+    const member = UserFactory.fake();
+
+    await new PortalState()
+      .createUsers(member)
+      .write();
+
+    const emailService = mock(EmailService);
+    const authController = ControllerFactory.auth(conn, instance(emailService));
+    const loginRequest = {
+      email: member.handle,
+      password: UserFactory.PASSWORD_RAW,
+    };
+    const loginResponse = await authController.login(loginRequest, FactoryUtils.randomHexString());
+
+    // check auth token is as expected
+    const decodedToken = jwt.verify(loginResponse.token, Config.auth.secret);
+    if (!UserAuthService.isAuthToken(decodedToken)) throw new Error('Invalid auth token');
+    expect(decodedToken.uuid).toEqual(member.uuid);
+  });
+
   test('user cannot login with incorrect credentials', async () => {
     const conn = await DatabaseConnection.get();
     const member = UserFactory.fake();

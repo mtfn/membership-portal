@@ -2,6 +2,7 @@ import { IsEmail, IsDefined, ValidateNested, Length } from 'class-validator';
 import { Type } from 'class-transformer';
 import {
   IsValidPassword, IsValidName, IsValidGraduationYear, IsValidMajor, HasMatchingPasswords, IsValidHandle,
+  IsValidEmailOrHandle,
 } from '../decorators/Validators';
 import {
   LoginRequest as ILoginRequest,
@@ -59,8 +60,9 @@ export class RegistrationRequest implements IRegistrationRequest {
 }
 
 export class LoginRequest implements ILoginRequest {
+  // Named `email` for backwards compatibility, but accepts either an email or a handle.
   @IsDefined()
-  @IsEmail()
+  @IsValidEmailOrHandle()
   email: string;
 
   @IsDefined()
